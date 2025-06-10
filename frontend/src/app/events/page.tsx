@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Container,
   Typography,
-  Grid,
   Box,
   TextField,
   InputAdornment,
@@ -13,6 +12,7 @@ import {
   Select,
   MenuItem,
   Chip,
+  Grid,
 } from '@mui/material';
 import { Search, LocationOn, CalendarToday } from '@mui/icons-material';
 import { Layout } from '@/components/Layout';
@@ -97,7 +97,7 @@ export default function EventsPage() {
                 }}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel>Localização</InputLabel>
@@ -120,7 +120,7 @@ export default function EventsPage() {
                 </Select>
               </FormControl>
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
