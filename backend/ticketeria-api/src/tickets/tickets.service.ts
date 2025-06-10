@@ -83,52 +83,49 @@ export class TicketsService {
   async bulkCreateCourtesy(data: BulkCreateCourtesyTicketsDto) {
     // Implementação para criar ingressos cortesia em lote
     // Esta é uma versão simplificada, na prática seria integrado com o módulo de mensageria
-    
+
     const results = [];
-    
+
     for (const recipient of data.recipients) {
       // Verificar se o usuário já existe ou criar um novo
       let user = await this.prisma.user.findUnique({
         where: { email: recipient.email },
       });
-      
-      if (!user) {
-        // Criar um usuário básico
-        user = await this.prisma.user.create({
-          data: {
-            name: recipient.name,
-            email: recipient.email,
-            password: uuidv4(), // Senha aleatória, na prática enviaria um link para definir senha
-          },
-        });
-      }
-      
+
+      user ??= await this.prisma.user.create({
+        data: {
+          name: recipient.name,
+          email: recipient.email,
+          password: uuidv4(), // Senha aleatória, na prática enviaria um link para definir senha
+        },
+      });
+
       // Criar o ingresso cortesia
       const ticket = await this.create({
         ticketTypeId: data.ticketTypeId,
         userId: user.id,
         isCourtesy: true,
       });
-      
-      results.push(ticket);
+
+      results.push(ticket as unknown as never);
     }
-    
+
     return results;
   }
 
   async findAll(userId?: string, eventId?: string) {
     const where: any = {};
-    
+
     if (userId) {
       where.userId = userId;
     }
-    
+
     if (eventId) {
       where.ticketType = {
         eventId,
       };
     }
-    
+
     return this.prisma.ticket.findMany({
       where,
       include: {

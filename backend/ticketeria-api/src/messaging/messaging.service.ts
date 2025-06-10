@@ -8,20 +8,20 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
   private channel: amqp.Channel;
   private readonly rabbitmqUrl: string;
 
-  constructor(private configService: ConfigService) {
-    this.rabbitmqUrl = this.configService.get<string>('RABBITMQ_URL');
+  constructor(private readonly configService: ConfigService) {
+    this.rabbitmqUrl = this.configService.get<string>('RABBITMQ_URL') ?? '';
   }
 
   async onModuleInit() {
     try {
       this.connection = await amqp.connect(this.rabbitmqUrl);
       this.channel = await this.connection.createChannel();
-      
+
       // Declarar as filas que serão utilizadas
       await this.channel.assertQueue('email_notifications', { durable: true });
       await this.channel.assertQueue('ticket_generation', { durable: true });
       await this.channel.assertQueue('payment_processing', { durable: true });
-      
+
       console.log('Conectado ao RabbitMQ');
     } catch (error) {
       console.error('Erro ao conectar ao RabbitMQ:', error.message);
@@ -45,7 +45,7 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
     if (!this.channel) {
       throw new Error('Canal RabbitMQ não está disponível');
     }
-    
+
     return this.channel.sendToQueue(
       'email_notifications',
       Buffer.from(JSON.stringify(data)),
@@ -57,7 +57,7 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
     if (!this.channel) {
       throw new Error('Canal RabbitMQ não está disponível');
     }
-    
+
     return this.channel.sendToQueue(
       'ticket_generation',
       Buffer.from(JSON.stringify(data)),
@@ -69,7 +69,7 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
     if (!this.channel) {
       throw new Error('Canal RabbitMQ não está disponível');
     }
-    
+
     return this.channel.sendToQueue(
       'payment_processing',
       Buffer.from(JSON.stringify(data)),
@@ -81,7 +81,7 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
     if (!this.channel) {
       throw new Error('Canal RabbitMQ não está disponível');
     }
-    
+
     await this.channel.consume('email_notifications', async (msg) => {
       if (msg) {
         try {
@@ -100,7 +100,7 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
     if (!this.channel) {
       throw new Error('Canal RabbitMQ não está disponível');
     }
-    
+
     await this.channel.consume('ticket_generation', async (msg) => {
       if (msg) {
         try {
@@ -119,7 +119,7 @@ export class MessagingService implements OnModuleInit, OnModuleDestroy {
     if (!this.channel) {
       throw new Error('Canal RabbitMQ não está disponível');
     }
-    
+
     await this.channel.consume('payment_processing', async (msg) => {
       if (msg) {
         try {

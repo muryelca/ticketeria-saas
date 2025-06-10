@@ -1,23 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { 
-  CreatePixPaymentDto, 
+import {
+  CreatePixPaymentDto,
   CreateCreditCardPaymentDto,
   CreateBoletoPaymentDto,
   CreateBankTransferPaymentDto,
   CreateITPPaymentDto,
-  PaymentResponseDto 
+  PaymentResponseDto
 } from './dto/payment.dto';
 
 @Injectable()
 export class SqalaService {
-  private readonly apiKey: string;
-  private readonly apiUrl: string;
-
-  constructor(private configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('SQALA_API_KEY');
-    this.apiUrl = this.configService.get<string>('SQALA_API_URL');
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly apiKey: string,
+    private readonly apiUrl: string
+  ) {
+    this.apiKey = this.configService.get<string>('SQALA_API_KEY') ?? '';
+    this.apiUrl = this.configService.get<string>('SQALA_API_URL') ?? '';
   }
 
   private getHeaders() {
@@ -27,7 +28,7 @@ export class SqalaService {
     };
   }
 
-  async createPixPayment(data: CreatePixPaymentDto, amount: number): Promise<PaymentResponseDto> {
+  async createPixPayment(data: CreatePixPaymentDto, amount: number): Promise<PaymentResponseDto | any> {
     try {
       const payload = {
         amount,
@@ -60,7 +61,7 @@ export class SqalaService {
     }
   }
 
-  async createCreditCardPayment(data: CreateCreditCardPaymentDto, amount: number): Promise<PaymentResponseDto> {
+  async createCreditCardPayment(data: CreateCreditCardPaymentDto, amount: number): Promise<PaymentResponseDto | any> {
     try {
       const payload = {
         amount,
@@ -94,7 +95,7 @@ export class SqalaService {
     }
   }
 
-  async createBoletoPayment(data: CreateBoletoPaymentDto, amount: number): Promise<PaymentResponseDto> {
+  async createBoletoPayment(data: CreateBoletoPaymentDto, amount: number): Promise<PaymentResponseDto | any> {
     try {
       const payload = {
         amount,
@@ -129,7 +130,7 @@ export class SqalaService {
     }
   }
 
-  async createBankTransferPayment(data: CreateBankTransferPaymentDto, amount: number): Promise<PaymentResponseDto> {
+  async createBankTransferPayment(data: CreateBankTransferPaymentDto, amount: number): Promise<PaymentResponseDto | any> {
     try {
       const payload = {
         amount,
@@ -162,7 +163,7 @@ export class SqalaService {
     }
   }
 
-  async createITPPayment(data: CreateITPPaymentDto, amount: number): Promise<PaymentResponseDto> {
+  async createITPPayment(data: CreateITPPaymentDto, amount: number): Promise<PaymentResponseDto | any> {
     try {
       const payload = {
         amount,
@@ -199,7 +200,7 @@ export class SqalaService {
   async getPaymentStatus(paymentId: string, paymentMethod: string): Promise<any> {
     try {
       let endpoint;
-      
+
       switch (paymentMethod) {
         case 'PIX':
           endpoint = `/pix/${paymentId}`;
@@ -235,7 +236,7 @@ export class SqalaService {
   async refundPayment(paymentId: string, paymentMethod: string): Promise<any> {
     try {
       let endpoint;
-      
+
       switch (paymentMethod) {
         case 'PIX':
           endpoint = `/pix/${paymentId}/refund`;
