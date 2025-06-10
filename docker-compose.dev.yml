@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ticketeria-postgres-dev
+    environment:
+      POSTGRES_DB: ticketeria
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - ticketeria-network-dev
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ticketeria-rabbitmq-dev
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data_dev:/var/lib/rabbitmq
+    networks:
+      - ticketeria-network-dev
+
+  # Redis (opcional, para cache)
+  redis:
+    image: redis:7-alpine
+    container_name: ticketeria-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - ticketeria-network-dev
+    command: redis-server --appendonly yes
+
+volumes:
+  postgres_data_dev:
+  rabbitmq_data_dev:
+  redis_data_dev:
+
+networks:
+  ticketeria-network-dev:
+    driver: bridge
+

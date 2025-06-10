@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ticketeria-postgres
+    environment:
+      POSTGRES_DB: ticketeria
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ticketeria-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ticketeria-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - ticketeria-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend/ticketeria-api
+      dockerfile: Dockerfile
+    container_name: ticketeria-backend
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/ticketeria?schema=public"
+      JWT_SECRET: "your-super-secret-jwt-key-change-in-production"
+      JWT_EXPIRATION: "1d"
+      RABBITMQ_URL: "amqp://admin:admin@rabbitmq:5672"
+      SQALA_API_KEY: "your-sqala-api-key"
+      SQALA_API_URL: "https://api.sqala.tech"
+      NODE_ENV: "production"
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ticketeria-network
+    volumes:
+      - ./backend/ticketeria-api:/app
+      - /app/node_modules
+    command: >
+      sh -c "
+        npx prisma migrate deploy &&
+        npx prisma generate &&
+        npm run start:prod
+      "
+
+  # Frontend Web App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ticketeria-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:3001"
+      NEXT_PUBLIC_APP_NAME: "Ticketeria"
+      NEXT_PUBLIC_APP_DESCRIPTION: "Sistema de venda de ingressos para eventos"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - ticketeria-network
+
+  # Redis (opcional, para cache)
+  redis:
+    image: redis:7-alpine
+    container_name: ticketeria-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ticketeria-network
+    command: redis-server --appendonly yes
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  redis_data:
+
+networks:
+  ticketeria-network:
+    driver: bridge
+

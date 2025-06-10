@@ -1,0 +1,203 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Usuário do sistema
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String
+  phone         String?
+  cpf           String?   @unique
+  role          UserRole  @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relações
+  events        Event[]   // Eventos criados pelo usuário (quando é organizador)
+  tickets       Ticket[]  // Ingressos comprados pelo usuário
+  promoterCodes PromoterCode[] // Códigos de promoter criados pelo usuário (quando é promoter)
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  ORGANIZER
+  PROMOTER
+  CUSTOMER
+}
+
+// Evento
+model Event {
+  id            String    @id @default(uuid())
+  title         String
+  description   String
+  location      String
+  startDate     DateTime
+  endDate       DateTime?
+  bannerUrl     String?
+  status        EventStatus @default(DRAFT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relações
+  organizerId   String
+  organizer     User      @relation(fields: [organizerId], references: [id])
+  ticketTypes   TicketType[] // Tipos de ingressos disponíveis para o evento
+  
+  @@map("events")
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELED
+  FINISHED
+}
+
+// Tipo de Ingresso
+model TicketType {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  price         Float
+  quantity      Int
+  startSaleDate DateTime
+  endSaleDate   DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relações
+  eventId       String
+  event         Event     @relation(fields: [eventId], references: [id])
+  tickets       Ticket[]  // Ingressos vendidos deste tipo
+  
+  @@map("ticket_types")
+}
+
+// Ingresso
+model Ticket {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  status        TicketStatus @default(RESERVED)
+  price         Float     // Preço final (após aplicação de descontos)
+  originalPrice Float     // Preço original
+  isCourtesy    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relações
+  ticketTypeId  String
+  ticketType    TicketType @relation(fields: [ticketTypeId], references: [id])
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
+  orderId       String?
+  order         Order?    @relation(fields: [orderId], references: [id])
+  promoterCodeId String?
+  promoterCode  PromoterCode? @relation(fields: [promoterCodeId], references: [id])
+  
+  @@map("tickets")
+}
+
+enum TicketStatus {
+  RESERVED
+  PAID
+  CANCELED
+  USED
+  EXPIRED
+}
+
+// Pedido
+model Order {
+  id            String    @id @default(uuid())
+  totalAmount   Float
+  status        OrderStatus @default(PENDING)
+  paymentMethod PaymentMethod?
+  paymentId     String?   // ID da transação no gateway de pagamento
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relações
+  tickets       Ticket[]  // Ingressos incluídos no pedido
+  
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  PIX
+  CREDIT_CARD
+  BOLETO
+  BANK_TRANSFER
+  ITP
+}
+
+// Código de Promoter
+model PromoterCode {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  discountType  DiscountType
+  discountValue Float
+  startDate     DateTime
+  endDate       DateTime
+  maxUses       Int?
+  currentUses   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relações
+  promoterId    String
+  promoter      User      @relation(fields: [promoterId], references: [id])
+  tickets       Ticket[]  // Ingressos que usaram este código
+  
+  @@map("promoter_codes")
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+// Relatório
+model Report {
+  id            String    @id @default(uuid())
+  name          String
+  type          ReportType
+  parameters    Json?
+  fileUrl       String?
+  status        ReportStatus @default(PROCESSING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@map("reports")
+}
+
+enum ReportType {
+  SALES
+  PROMOTER_CODES
+  TICKETS
+  EVENTS
+}
+
+enum ReportStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
